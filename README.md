@@ -19,24 +19,24 @@ The demo showcases five core capabilities:
 
 ```mermaid
 graph TD
-    subgraph GKE Cluster: my-vac-cluster (10 Nodes)
-        subgraph Node 1
-            P1[Pod: base-app-xxx1<br/>fio background load]
+    subgraph cluster1["GKE Cluster: my-vac-cluster (10 Nodes)"]
+        subgraph n1["Node 1"]
+            P1["Pod: base-app-xxx1 (fio load)"]
         end
-        subgraph Node 2
-            P2[Pod: base-app-xxx2<br/>fio background load]
+        subgraph n2["Node 2"]
+            P2["Pod: base-app-xxx2 (fio load)"]
         end
-        subgraph Node ...
-            P3[Pod: base-app-xxx...]
+        subgraph n3["Nodes 3 to 9"]
+            P3["Pods: base-app-xxx3..9"]
         end
-        subgraph Node 10
-            P10[Pod: base-app-xxx10<br/>fio background load]
+        subgraph n10["Node 10"]
+            P10["Pod: base-app-xxx10 (fio load)"]
         end
     end
 
-    PVC[PersistentVolumeClaim: fio-dynamic-pvc<br/>AccessMode: ReadWriteMany | StorageClass: zonal-rwx]
-    VAC[VolumeAttributesClass: filestore-17k-iops<br/>max-iops: 17000]
-    FS[(Google Cloud Filestore Zonal Instance<br/>Dynamic 1TiB+ RWX Share)]
+    PVC["PersistentVolumeClaim: fio-dynamic-pvc (ReadWriteMany | zonal-rwx)"]
+    VAC["VolumeAttributesClass: filestore-17k-iops (max-iops: 17000)"]
+    FS[("Google Cloud Filestore Zonal Instance (Dynamic 1TiB+ RWX Share)")]
 
     P1 -->|Mount: /mnt/filestore| PVC
     P2 -->|Mount: /mnt/filestore| PVC
