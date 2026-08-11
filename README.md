@@ -17,34 +17,27 @@ The demo showcases five core capabilities:
 
 ## Demo Architecture
 
+The demo is split into two major phases:
+
+| Phase | Scenario | Kubernetes Mechanism | Under-the-Hood Event |
+| :--- | :--- | :--- | :--- |
+| **Phase 1** | **Dynamic Performance Scaling** | Patching `PersistentVolumeClaim` with `VolumeAttributesClass` | GKE Filestore CSI Driver communicates directly with the Filestore API to scale IOPS instantly without unmounting. |
+| **Phase 2** | **Automated Node Resiliency** | GKE Pod Rescheduling & PVC Shared Volume Re-binding | A critical node failure is simulated. GKE relocates the affected pods, and the zonal Filestore share seamlessly reconnects. |
+
 ```mermaid
 graph TD
-    subgraph cluster1["GKE Cluster: my-vac-cluster (10 Nodes)"]
-        subgraph n1["Node 1"]
-            P1["Pod: base-app-xxx1 (fio load)"]
+    subgraph GKE ["GKE Cluster (us-central1-a)"]
+        subgraph Pods ["Stateful Workloads"]
+            App["Multiple FIO Benchmarking Pods (10 Total)"]
         end
-        subgraph n2["Node 2"]
-            P2["Pod: base-app-xxx2 (fio load)"]
-        end
-        subgraph n3["Nodes 3 to 9"]
-            P3["Pods: base-app-xxx3..9"]
-        end
-        subgraph n10["Node 10"]
-            P10["Pod: base-app-xxx10 (fio load)"]
-        end
+        PVC["PersistentVolumeClaim (fio-dynamic-pvc)"]
+        VAC["VolumeAttributesClass (VAC)"]
     end
+    FS[(Zonal Filestore Instance)]
 
-    PVC["PersistentVolumeClaim: fio-dynamic-pvc (ReadWriteMany | zonal-rwx)"]
-    VAC["VolumeAttributesClass: filestore-17k-iops (max-iops: 17000)"]
-    FS[("Google Cloud Filestore Zonal Instance (Dynamic 1TiB+ RWX Share)")]
-
-    P1 -->|Mount: /mnt/filestore| PVC
-    P2 -->|Mount: /mnt/filestore| PVC
-    P3 -->|Mount: /mnt/filestore| PVC
-    P10 -->|Mount: /mnt/filestore| PVC
-
-    PVC --> FS
-    VAC -.->|Dynamically Patched onto| PVC
+    App -->|Mounts| PVC
+    VAC -.->|Live Patch Config| PVC
+    PVC -->|Managed CSI Driver| FS
 ```
 
 ---
