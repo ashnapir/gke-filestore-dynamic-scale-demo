@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: fio-dynamic-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: zonal-rwx # Use zonal-rwx for Filestore Zonal tier
+  resources:
+    requests:
+      storage: 1Ti # Minimum size for Zonal is 1TiB
+  # volumeAttributesClassName: fio-vac-17200-iops # Initially not set    

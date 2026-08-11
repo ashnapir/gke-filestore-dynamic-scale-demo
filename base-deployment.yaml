@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: base-app
+  labels:
+    app: fio-tester
+spec:
+  replicas: 10
+  selector:
+    matchLabels:
+      app: fio-tester
+  template:
+    metadata:
+      labels:
+        app: fio-tester
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - fio-tester
+            topologyKey: "kubernetes.io/hostname"
+      containers:
+      - name: main
+        image: alpine:latest
+        command: ["/bin/sh", "-c"]
+        args:
+        - "trap exit TERM; while true; do echo Container is running... $(date); sleep 300; done"
+        volumeMounts:
+        - name: filestore-vol
+          mountPath: /mnt/filestore
+      volumes:
+      - name: filestore-vol
+        persistentVolumeClaim:
+          claimName: fio-dynamic-pvc # Use the dynamic PVC
+

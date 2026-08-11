@@ -1,0 +1,8 @@
+apiVersion: storage.k8s.io/v1
+kind: VolumeAttributesClass
+metadata:
+  name: filestore-17k-iops
+driverName: filestore.csi.storage.gke.io
+parameters:
+  max-iops: "17000"
+
