@@ -104,6 +104,8 @@ chmod +x *.sh
 ### Step 1: Create the GKE Cluster
 Create a 10-node zonal GKE cluster with the Filestore CSI driver enabled. Disabling autoscaling keeps the node count static (`10 nodes`) for exact 1-to-1 pod distribution:
 
+> **Note**: To reduce overall cost, it is also possible to create a smaller cluster (e.g., 3 to 5 nodes). All that is required is modifying the `--num-nodes` parameter in the command below.
+
 ```bash
 gcloud container clusters create "$CLUSTER_NAME" \
   --zone="$ZONE" \
@@ -135,6 +137,8 @@ kubectl apply -f dynamic-pvc.yaml
 
 ### Step 4: Deploy Multi-Pod RWX Workload
 Deploy the application workload using [`base-deployment.yaml`](base-deployment.yaml). Thanks to pod anti-affinity on `kubernetes.io/hostname`, each of the 10 replicas lands on a separate node:
+
+> **Note**: If the number of nodes is reduced in Step 1, remember to also reduce the number of `replicas` in [`base-deployment.yaml`](base-deployment.yaml) to match your node count so that all pods can be scheduled under the pod anti-affinity rule.
 
 ```bash
 kubectl apply -f base-deployment.yaml
