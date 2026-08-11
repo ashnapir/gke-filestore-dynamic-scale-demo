@@ -46,7 +46,6 @@ graph TD
 
 | File | Type | Description |
 | :--- | :---: | :--- |
-| [`how-to.txt`](how-to.txt) | Doc | Original quick-reference presenter step checklist. |
 | [`vac-17k.yaml`](vac-17k.yaml) | K8s Manifest | Defines `VolumeAttributesClass` (`filestore-17k-iops`) configuring `max-iops: "17000"`. |
 | [`dynamic-pvc.yaml`](dynamic-pvc.yaml) | K8s Manifest | `PersistentVolumeClaim` (`fio-dynamic-pvc`) requesting a `1Ti` volume with `ReadWriteMany` on `zonal-rwx`. |
 | [`base-deployment.yaml`](base-deployment.yaml) | K8s Manifest | `Deployment` (`base-app`) running 10 Alpine replicas with host pod anti-affinity mounting `/mnt/filestore`. |
