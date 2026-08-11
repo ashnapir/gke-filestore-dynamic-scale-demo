@@ -1,4 +1,4 @@
-# GKE Filestore Zonal RWX & VolumeAttributesClass (VAC) Performance & Resilience Demo
+# Dynamic Performance Scaling & Zonal Resiliency with Filestore on GKE
 
 [![GKE](https://img.shields.io/badge/Google_Cloud-GKE-blue.svg)](https://cloud.google.com/kubernetes-engine)
 [![Filestore](https://img.shields.io/badge/Google_Cloud-Filestore-green.svg)](https://cloud.google.com/filestore)
