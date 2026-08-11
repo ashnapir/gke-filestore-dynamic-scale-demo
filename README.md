@@ -168,6 +168,8 @@ Execute [`install_fio.sh`](install_fio.sh) to run `apk update && apk add fio` on
 ### Step 8: Start Distributed Benchmark Workload
 Launch background `fio` workloads (`randread`, blocksize `4k`, iodepth `3`) on all pods using [`run_fio.sh`](run_fio.sh):
 
+> **Note**: If you reduced the total number of pods to match a smaller cluster, aggregate I/O across the remaining pods will be proportionally lower. To ensure fewer pods still generate enough combined IOPS to hit Filestore's baseline throttle ceiling on the Cloud Monitoring dashboard, you can optionally edit `--numjobs` (e.g. from `1` to `4`) or `--iodepth` (e.g. from `3` to `16`) inside [`run_fio.sh`](run_fio.sh) before launching.
+
 ```bash
 ./run_fio.sh
 ```
@@ -238,6 +240,8 @@ Re-check Cloud Monitoring:
 
 ### Step 15: Execute Node Failure Simulation
 Demonstrate high availability and self-healing storage under stress by terminating 3 GCE node instances simultaneously while I/O is running:
+
+> **Important Note for Smaller Clusters**: Both [`failure_simulation.sh`](failure_simulation.sh) and [`simulate_3_node_failure.sh`](simulate_3_node_failure.sh) hardcode terminating **3 nodes** (`NUM_NODES_TO_FAIL=3`). If you reduced your cluster size to 3 nodes or fewer, terminating 3 nodes simultaneously will delete all cluster nodes or fail with an error. For smaller clusters, use **[`simulate_1_node_failure.sh`](simulate_1_node_failure.sh)** instead (or edit `NUM_NODES_TO_FAIL=1` in [`failure_simulation.sh`](failure_simulation.sh)).
 
 ```bash
 ./failure_simulation.sh
