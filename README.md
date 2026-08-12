@@ -279,14 +279,13 @@ Run the pod list checker to ensure all 10 pods across all active nodes are mount
 ```
 
 ## Complete Environment Teardown
-To delete all demo resources and clean up Cloud billing:
+
+> **Important**: Always delete the PersistentVolumeClaim (`pvc`) *before* deleting the cluster so the GKE Filestore CSI driver cleanly deletes the underlying Filestore instance from your GCP project.
 
 ```bash
-# Delete Kubernetes resources
-kubectl delete deployment base-app
+# 1. Delete the PVC first to automatically delete the underlying Filestore instance
 kubectl delete pvc fio-dynamic-pvc
-kubectl delete volumeattributesclass filestore-17k-iops
 
-# Delete GKE cluster
+# 2. Delete the GKE cluster
 gcloud container clusters delete "$CLUSTER_NAME" --zone="$ZONE" --quiet
 ```
