@@ -153,6 +153,11 @@ Watch Kubernetes events until the PVC state transitions to `Bound` and volumes a
 kubectl get events -w | grep fio-dynamic-pvc
 ```
 
+**Expected Output:**
+```text
+Normal    ProvisioningSucceeded    persistentvolumeclaim/fio-dynamic-pvc    Successfully provisioned volume pvc-7182cc82-fa08-4d7f-8b84-2bc9dfc50adc
+```
+
 ### Step 5: Verify Storage Configuration in GCP Console
 Navigate to **Google Cloud Console > GKE > Clusters > `my-vac-cluster` > Storage** (or **Filestore > Instances**) to verify:
 - A new Filestore Zonal instance has been provisioned.
