@@ -93,7 +93,7 @@ Clone this repository and make all shell scripts executable:
 
 ```bash
 git clone <repository-url>
-cd filestore_gke_demo
+cd gke-filestore-dynamic-scale-demo
 chmod +x *.sh
 ```
 
