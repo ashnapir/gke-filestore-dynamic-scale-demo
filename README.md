@@ -126,7 +126,12 @@ gcloud container clusters get-credentials "$CLUSTER_NAME" --zone="$ZONE"
 ```
 
 ### Step 2: Dynamically Provision Filestore Instance
-Apply [`dynamic-pvc.yaml`](dynamic-pvc.yaml). The Filestore CSI driver will dynamically provision a Filestore Zonal instance behind the scenes (`zonal-rwx` storage class, `1TiB` minimum capacity):
+Apply [`dynamic-pvc.yaml`](dynamic-pvc.yaml). The manifest defines both the `StorageClass` (`zonal-rwx`) with your target VPC network and the `PersistentVolumeClaim` (`1TiB` minimum capacity).
+
+> **Important for Custom VPC Networks**: If your project does not use the `"default"` VPC network (e.g. you created your cluster in `"alec-vpc"`), update the `network` parameter in [`dynamic-pvc.yaml`](dynamic-pvc.yaml) to match your `$NETWORK` environment variable before applying:
+> ```bash
+> sed -i "s/network: \"default\"/network: \"$NETWORK\"/g" dynamic-pvc.yaml
+> ```
 
 ```bash
 kubectl apply -f dynamic-pvc.yaml
