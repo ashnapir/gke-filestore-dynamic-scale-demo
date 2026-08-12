@@ -55,7 +55,6 @@ graph TD
 | [`failure_simulation.sh`](failure_simulation.sh) | Script | Primary failure script: deletes 3 random GCE node instances in parallel, monitors recovery, and re-triggers load. |
 | [`simulate_1_node_failure.sh`](simulate_1_node_failure.sh) | Script | Alternative failure script for testing single-node loss and recovery. |
 | [`simulate_3_node_failure.sh`](simulate_3_node_failure.sh) | Script | Alternative failure script that deletes 3 random nodes sequentially. |
-| [`stop_fio.sh`](stop_fio.sh) | Script | Stops active `fio` benchmark processes across all matching pods. |
 | [`kill_fio.sh`](kill_fio.sh) | Script | Sends explicit `TERM` signals to matching `fio` process PIDs across pods. |
 
 ---
@@ -285,13 +284,10 @@ Run the pod list checker to ensure all 10 pods across all active nodes are mount
 ## Benchmark Management & Cleanup
 
 ### Managing Active Load
-To gracefully stop or kill `fio` processes on pods without removing the pods themselves:
+To stop active `fio` benchmark processes on pods without removing the pods themselves:
 
 ```bash
-# Gracefully signal FIO processes to stop
-./stop_fio.sh
-
-# Or send explicit TERM signals by PID
+# Send explicit TERM signals to stop FIO processes
 ./kill_fio.sh
 ```
 
