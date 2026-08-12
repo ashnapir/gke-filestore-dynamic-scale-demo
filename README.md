@@ -217,17 +217,14 @@ kubectl apply -f vac-17k.yaml
 Query the Filestore API programmatically to check the instance configuration and metadata:
 
 ```bash
-# Retrieve instance name and zone dynamically from the Filestore API
-FULL_PATH=$(gcloud filestore instances list \
+# Retrieve instance name automatically and inspect it in $ZONE
+INSTANCE_NAME=$(gcloud filestore instances list \
   --filter="labels.kubernetes_io_created-for_pvc_name:fio-dynamic-pvc" \
-  --format="json" | grep '"name": "projects/')
+  --format="value(name)" | head -n1)
 
-INSTANCE_ZONE=$(echo "$FULL_PATH" | cut -d'/' -f4)
-INSTANCE_NAME=$(echo "$FULL_PATH" | cut -d'/' -f6 | tr -d '",')
+echo "Found Filestore Instance: $INSTANCE_NAME in zone: $ZONE"
 
-echo "Found Filestore Instance: $INSTANCE_NAME in zone: $INSTANCE_ZONE"
-
-gcloud filestore instances describe "$INSTANCE_NAME" --zone="$INSTANCE_ZONE"
+gcloud filestore instances describe "$INSTANCE_NAME" --zone="$ZONE"
 ```
 
 ### Step 12: Online Performance Scaling via VolumeAttributesClass
