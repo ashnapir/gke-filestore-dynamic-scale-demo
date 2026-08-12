@@ -1,7 +1,7 @@
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
-  name: zonal-rwx
+  name: filestore-zonal-rwx
 provisioner: filestore.csi.storage.gke.io
 volumeBindingMode: WaitForFirstConsumer
 allowVolumeExpansion: true
@@ -16,7 +16,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteMany
-  storageClassName: zonal-rwx
+  storageClassName: filestore-zonal-rwx
   resources:
     requests:
       storage: 1Ti # Minimum size for Zonal is 1TiB

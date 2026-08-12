@@ -126,7 +126,7 @@ gcloud container clusters get-credentials "$CLUSTER_NAME" --zone="$ZONE"
 ```
 
 ### Step 2: Dynamically Provision Filestore Instance
-Apply [`dynamic-pvc.yaml`](dynamic-pvc.yaml). The manifest defines both the `StorageClass` (`zonal-rwx`) with your target VPC network and the `PersistentVolumeClaim` (`1TiB` minimum capacity).
+Apply [`dynamic-pvc.yaml`](dynamic-pvc.yaml). The manifest defines both the custom `StorageClass` (`filestore-zonal-rwx`) with your target VPC network and the `PersistentVolumeClaim` (`1TiB` minimum capacity).
 
 > **Important for Custom VPC Networks**: If your project does not use the `"default"` VPC network (e.g. you created your cluster in `"alec-vpc"`), update the `network` parameter in [`dynamic-pvc.yaml`](dynamic-pvc.yaml) to match your `$NETWORK` environment variable before applying:
 > ```bash
