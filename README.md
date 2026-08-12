@@ -84,6 +84,7 @@ export PROJECT_ID="your-gcp-project-id"
 export REGION="us-central1"
 export ZONE="us-central1-a"
 export CLUSTER_NAME="my-vac-cluster"
+export NETWORK="default" # Change to your VPC network name if default is not available
 
 gcloud config set project "$PROJECT_ID"
 ```
@@ -109,6 +110,7 @@ Create a 10-node zonal GKE cluster with the Filestore CSI driver enabled. Disabl
 ```bash
 gcloud container clusters create "$CLUSTER_NAME" \
   --zone="$ZONE" \
+  --network="$NETWORK" \
   --cluster-version=1.35.2-gke.1842000 \
   --num-nodes=10 \
   --addons=GcpFilestoreCsiDriver \
