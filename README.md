@@ -147,13 +147,14 @@ kubectl apply -f base-deployment.yaml
 ```
 
 ### Step 4: Validate Filestore Volume Provisioning
-Watch Kubernetes events until the PVC state transitions to `Bound` and volumes are mounted:
+Watch Kubernetes events until the PVC state transitions to `Bound` and the volume is provisioned:
 
 ```bash
 kubectl get events -w | grep fio-dynamic-pvc
 ```
 
-**Expected Output:**
+You should see an output similar to the following confirming that volume provisioning succeeded:
+
 ```text
 Normal    ProvisioningSucceeded    persistentvolumeclaim/fio-dynamic-pvc    Successfully provisioned volume pvc-7182cc82-fa08-4d7f-8b84-2bc9dfc50adc
 ```
