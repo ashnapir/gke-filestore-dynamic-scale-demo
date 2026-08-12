@@ -238,7 +238,9 @@ kubectl patch pvc fio-dynamic-pvc -n default \
 ```
 
 ### Step 13: Confirm Updated Performance Profile
-Inspect the Filestore instance configuration again to verify that IOPS limits were dynamically updated:
+> **Note on Asynchronous Control Plane Updates**: Dynamic IOPS scaling via Filestore is asynchronous. Wait **~30 to 60 seconds** after executing the PVC patch before describing the instance so the control plane finishes updating `performanceLimits`.
+
+Inspect the Filestore instance configuration again to verify that IOPS limits were dynamically updated to **17,000 IOPS**:
 
 ```bash
 gcloud filestore instances describe "$INSTANCE_NAME" --zone="$ZONE"
