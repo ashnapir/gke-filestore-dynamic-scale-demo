@@ -278,11 +278,7 @@ Run the pod list checker to ensure all 10 pods across all active nodes are mount
 ./list_fio_pods.sh
 ```
 
----
-
-## Benchmark Management & Cleanup
-
-### Complete Environment Teardown
+## Complete Environment Teardown
 To delete all demo resources and clean up Cloud billing:
 
 ```bash
