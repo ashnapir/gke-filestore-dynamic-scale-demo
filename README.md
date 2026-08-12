@@ -217,14 +217,14 @@ kubectl apply -f vac-17k.yaml
 Query the Filestore API programmatically to check the instance configuration and metadata:
 
 ```bash
-# Retrieve full instance resource path automatically
-INSTANCE_PATH=$(gcloud filestore instances list \
+# Retrieve instance name automatically and inspect it in $ZONE
+INSTANCE_NAME=$(gcloud filestore instances list \
   --filter="labels.kubernetes_io_created-for_pvc_name:fio-dynamic-pvc" \
   --format="value(name)" | head -n1)
 
-echo "Found Filestore Instance: $INSTANCE_PATH"
+echo "Found Filestore Instance: $INSTANCE_NAME in zone: $ZONE"
 
-gcloud filestore instances describe "$INSTANCE_PATH"
+gcloud filestore instances describe "$INSTANCE_NAME" --zone="$ZONE"
 ```
 
 ### Step 12: Online Performance Scaling via VolumeAttributesClass
@@ -239,7 +239,7 @@ kubectl patch pvc fio-dynamic-pvc -n default \
 Inspect the Filestore instance configuration again to verify that IOPS limits were dynamically updated:
 
 ```bash
-gcloud filestore instances describe "$INSTANCE_PATH"
+gcloud filestore instances describe "$INSTANCE_NAME" --zone="$ZONE"
 ```
 
 ### Step 14: Observe Post-Scale Performance Dashboard
