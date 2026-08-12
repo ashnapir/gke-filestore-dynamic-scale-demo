@@ -286,6 +286,9 @@ Run the pod list checker to ensure all 10 pods across all active nodes are mount
 # 1. Delete the PVC first to automatically delete the underlying Filestore instance
 kubectl delete pvc fio-dynamic-pvc
 
-# 2. Delete the GKE cluster
-gcloud container clusters delete "$CLUSTER_NAME" --zone="$ZONE" --quiet
+# 2. Automatically detect and delete the running GKE cluster (even if shell environment variables were reset)
+CLUSTER_NAME=$(gcloud container clusters list --format="value(name)" | head -n1)
+CLUSTER_ZONE=$(gcloud container clusters list --format="value(location)" | head -n1)
+
+gcloud container clusters delete "$CLUSTER_NAME" --zone="$CLUSTER_ZONE" --quiet
 ```
