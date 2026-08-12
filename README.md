@@ -125,21 +125,14 @@ Get authentication credentials for `kubectl`:
 gcloud container clusters get-credentials "$CLUSTER_NAME" --zone="$ZONE"
 ```
 
-### Step 2: Apply VolumeAttributesClass (VAC)
-Apply [`vac-17k.yaml`](vac-17k.yaml) to register the `filestore-17k-iops` VolumeAttributesClass resource in Kubernetes:
-
-```bash
-kubectl apply -f vac-17k.yaml
-```
-
-### Step 3: Dynamically Provision Filestore Instance
+### Step 2: Dynamically Provision Filestore Instance
 Apply [`dynamic-pvc.yaml`](dynamic-pvc.yaml). The Filestore CSI driver will dynamically provision a Filestore Zonal instance behind the scenes (`zonal-rwx` storage class, `1TiB` minimum capacity):
 
 ```bash
 kubectl apply -f dynamic-pvc.yaml
 ```
 
-### Step 4: Deploy Multi-Pod RWX Workload
+### Step 3: Deploy Multi-Pod RWX Workload
 Deploy the application workload using [`base-deployment.yaml`](base-deployment.yaml). Thanks to pod anti-affinity on `kubernetes.io/hostname`, each of the 10 replicas lands on a separate node:
 
 > **Note**: If the number of nodes is reduced in Step 1, remember to also reduce the number of `replicas` in [`base-deployment.yaml`](base-deployment.yaml) to match your node count so that all pods can be scheduled under the pod anti-affinity rule.
@@ -148,28 +141,28 @@ Deploy the application workload using [`base-deployment.yaml`](base-deployment.y
 kubectl apply -f base-deployment.yaml
 ```
 
-### Step 5: Validate Filestore Volume Provisioning
+### Step 4: Validate Filestore Volume Provisioning
 Watch Kubernetes events until the PVC state transitions to `Bound` and volumes are mounted:
 
 ```bash
 kubectl get events -w | grep fio-dynamic-pvc
 ```
 
-### Step 6: Verify Storage Configuration in GCP Console
+### Step 5: Verify Storage Configuration in GCP Console
 Navigate to **Google Cloud Console > GKE > Clusters > `my-vac-cluster` > Storage** (or **Filestore > Instances**) to verify:
 - A new Filestore Zonal instance has been provisioned.
 - The NFS share is mounted cleanly across the pods.
 
 ---
 
-### Step 7: Install FIO Across All Pods
+### Step 6: Install FIO Across All Pods
 Execute [`install_fio.sh`](install_fio.sh) to run `apk update && apk add fio` on each of the 10 pod replicas:
 
 ```bash
 ./install_fio.sh
 ```
 
-### Step 8: Start Distributed Benchmark Workload
+### Step 7: Start Distributed Benchmark Workload
 Launch background `fio` workloads (`randread`, blocksize `4k`, iodepth `3`) on all pods using [`run_fio.sh`](run_fio.sh):
 
 > **Note**: If you reduced the total number of pods to match a smaller cluster, aggregate I/O across the remaining pods will be proportionally lower. To ensure fewer pods still generate enough combined IOPS to hit Filestore's baseline throttle ceiling on the Cloud Monitoring dashboard, you can optionally edit `--numjobs` (e.g. from `1` to `4`) or `--iodepth` (e.g. from `3` to `16`) inside [`run_fio.sh`](run_fio.sh) before launching.
@@ -178,7 +171,7 @@ Launch background `fio` workloads (`randread`, blocksize `4k`, iodepth `3`) on a
 ./run_fio.sh
 ```
 
-### Step 9: Verify Pod Status, Mounts, and Load
+### Step 8: Verify Pod Status, Mounts, and Load
 Run [`list_fio_pods.sh`](list_fio_pods.sh) to display a comprehensive overview table:
 
 ```bash
@@ -195,12 +188,19 @@ base-app-58b4c7989-4w9pl                      | gke-my-vac-cluster-default-pool-
 ...
 ```
 
-### Step 10: Observe Baseline Performance Dashboard
+### Step 9: Observe Baseline Performance Dashboard
 Open **Cloud Monitoring > Dashboards > Filestore** or view instance metrics in Cloud Console:
 - **Observed behavior**: Aggregate Read IOPS is constrained by the initial Filestore tier baseline limit.
 - **Latency**: Elevated read latency due to max IOPS throttling.
 
 ---
+
+### Step 10: Register VolumeAttributesClass (VAC)
+Apply [`vac-17k.yaml`](vac-17k.yaml) to register the `filestore-17k-iops` VolumeAttributesClass resource in Kubernetes:
+
+```bash
+kubectl apply -f vac-17k.yaml
+```
 
 ### Step 11: Inspect Underlying Filestore Instance Details
 Query the Filestore API programmatically to check the instance name, location, and metadata:
