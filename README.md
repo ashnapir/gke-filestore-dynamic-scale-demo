@@ -284,11 +284,12 @@ Run the pod list checker to ensure all 10 pods across all active nodes are mount
 
 ## Complete Environment Teardown
 
-> **Important**: Always delete the PersistentVolumeClaim (`pvc`) *before* deleting the cluster so the GKE Filestore CSI driver cleanly deletes the underlying Filestore instance from your GCP project.
+> **Important**: Always delete the deployment and PersistentVolumeClaim (`pvc`) *before* deleting the cluster so the GKE Filestore CSI driver cleanly deletes the underlying Filestore instance from your GCP project.
 
 ```bash
-# 1. Delete the PVC first to automatically delete the underlying Filestore instance
-kubectl delete pvc fio-dynamic-pvc
+# 1. Delete deployment and PVC in the background so volumes unmount and Filestore deletes cleanly
+kubectl delete deployment base-app --wait=false
+kubectl delete pvc fio-dynamic-pvc --wait=false
 
 # 2. Delete the GKE cluster using the variables defined in Step 1 & 2
 # (Or replace $CLUSTER_NAME with "my-vac-cluster" and $ZONE with "us-central1-a")
