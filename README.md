@@ -269,6 +269,8 @@ Demonstrate high availability and self-healing storage under stress by terminati
 4. Verifies that the Filestore volume (`/mnt/filestore`) is automatically attached and remounted inside the new pods.
 5. Re-executes `install_fio.sh` and `run_fio.sh` exclusively on the new pods so full cluster load resumes seamlessly.
 
+> **Expected Execution Time**: The full automated failure and recovery cycle typically takes **~4 to 6 minutes**. This includes GCE Managed Instance Group hardware provisioning (~2.5 mins to recreate VMs, boot Container-Optimized OS, and join GKE), Kubernetes pod rescheduling with Filestore volume re-attachment (~2 mins), and automated parallel workload resumption.
+
 > **Alternative simulations:**
 > - Run `./simulate_1_node_failure.sh` to test recovery from a single node failure.
 > - Run `./simulate_3_node_failure.sh` for sequential 3-node elimination.
