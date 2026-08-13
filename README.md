@@ -157,6 +157,8 @@ You should see an output similar to the following confirming that volume provisi
 Normal    ProvisioningSucceeded    persistentvolumeclaim/fio-dynamic-pvc    Successfully provisioned volume pvc-7182cc82-fa08-4d7f-8b84-2bc9dfc50adc
 ```
 
+> **Note on Transient `FailedMount` Warnings**: You may occasionally see a brief warning like `Warning FailedMount ... persistentvolumeclaims "fio-dynamic-pvc" is forbidden: User "system:node:..." cannot get resource ... no relationship found between node and this object`. This is a normal, transient authorization sync event that occurs for a few seconds while Kubernetes is completing the node-to-PVC relationship binding. It resolves automatically once the volume reaches `Bound` status.
+
 ### Step 5: Verify Storage Configuration in GCP Console
 Navigate to **Google Cloud Console > GKE > Clusters > `my-vac-cluster` > Storage** (or **Filestore > Instances**) to verify:
 - A new Filestore Zonal instance has been provisioned.
