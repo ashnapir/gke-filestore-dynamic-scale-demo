@@ -5,11 +5,11 @@ set -e # Exit immediately if a command exits with a non-zero status.
 NAMESPACE="default"
 LABEL_SELECTOR="app=fio-tester"
 TIMEOUT_SECONDS=900 # Maximum time to wait for node/pod recovery (15 minutes)
-POLL_INTERVAL=10    # Seconds between checks
+POLL_INTERVAL=5     # Seconds between checks
 
 # --- Functions ---
 log() {
-  echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')] $@" >&2 # Redirect log messages to stderr
+  echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')] $@" >&2
 }
 
 wait_for_node_ready() {
@@ -44,9 +44,7 @@ wait_for_pod_running() {
       local pod_ready=$(kubectl get pod -n "$NAMESPACE" "$pod_name" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)
 
       if [ "$pod_phase" == "Running" ] && [ "$pod_ready" == "True" ]; then
-        log "Pod $pod_name is Running and Ready on node $NODE_NAME."
-        log "Waiting 30s for volume mount to be fully active on the new pod..."
-        sleep 30
+        log "Pod $pod_name is Running and Ready on node $node_name."
         return 0
       fi
       log "Pod $pod_name found on $node_name, but not fully Ready. Phase: $pod_phase, Ready: $pod_ready"
@@ -60,7 +58,7 @@ wait_for_pod_running() {
 }
 
 # --- Main Execution ---
-log "Starting node failure simulation..."
+log "Starting optimized single-node failure simulation..."
 
 # 1. Get a random node from the current cluster
 NODES=($(kubectl get nodes -o jsonpath='{.items[*].metadata.name}'))
@@ -79,12 +77,15 @@ if [ -z "$NODE_ZONE" ]; then
 fi
 log "Selected random node to delete: $NODE_TO_DELETE in zone $NODE_ZONE"
 
-# 2. Delete the node
+# 2. Delete the node (and immediately force-delete K8s node object to release VolumeAttachment lock)
 log "Deleting GCE instance $NODE_TO_DELETE in zone $NODE_ZONE..."
-if ! gcloud compute instances delete "$NODE_TO_DELETE" --zone "$NODE_ZONE" --quiet; then
-  log "WARNING: Failed to delete instance $NODE_TO_DELETE. It might have already been deleted or not exist."
-fi
-log "Instance deletion command issued for $NODE_TO_DELETE."
+gcloud compute instances delete "$NODE_TO_DELETE" --zone "$NODE_ZONE" --quiet &
+gcloud_pid=$!
+
+kubectl delete node "$NODE_TO_DELETE" --grace-period=0 --force --wait=false >/dev/null 2>&1 &
+
+wait "$gcloud_pid" || true
+log "Instance deletion command completed for $NODE_TO_DELETE."
 
 # 3. Wait for the node to be back and ready
 if ! wait_for_node_ready "$NODE_TO_DELETE"; then
@@ -96,9 +97,10 @@ if ! wait_for_pod_running "$NODE_TO_DELETE"; then
   exit 1
 fi
 
-log "Node and pod are ready on $NODE_TO_DELETE. Proceeding to call FIO scripts..."
+log "Node and pod are ready on $NODE_TO_DELETE. Proceeding to resume FIO load..."
+sleep 5
 
-# 5. Call install_fio.sh
+# 5. Call install_fio.sh (installs in parallel, skips existing)
 log "Running ./install_fio.sh..."
 if ! ./install_fio.sh; then
   log "ERROR: install_fio.sh failed."
@@ -106,7 +108,7 @@ if ! ./install_fio.sh; then
 fi
 log "install_fio.sh completed."
 
-# 6. Call run_fio.sh
+# 6. Call run_fio.sh (starts in parallel)
 log "Running ./run_fio.sh..."
 if ! ./run_fio.sh; then
   log "ERROR: run_fio.sh failed."
@@ -114,5 +116,4 @@ if ! ./run_fio.sh; then
 fi
 log "run_fio.sh completed."
 
-log "Node failure simulation and FIO setup complete for node $NODE_TO_DELETE."
-
+log "Single-node failure simulation and workload recovery complete for node $NODE_TO_DELETE."

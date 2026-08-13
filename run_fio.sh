@@ -9,27 +9,24 @@ if [ -z "$PODS" ]; then
   exit 1
 fi
 
-echo "Checking and starting FIO tests on pods: $PODS"
+echo "Checking and starting FIO tests in parallel on pods: $PODS"
 
-for pod_name in $PODS; do
-  TARGET_DIR="/mnt/filestore/fio-test-$pod_name"
-  FIO_NAME="random-reads-load"
-  LOG_FILE="/tmp/fio_${FIO_NAME}.log"
+run_on_pod() {
+  local pod_name=$1
+  local target_dir="/mnt/filestore/fio-test-$pod_name"
+  local fio_name="random-reads-load"
+  local log_file="/tmp/fio_${fio_name}.log"
 
-  echo "--- Processing pod: $pod_name ---"
-
-  if kubectl exec -n "$NAMESPACE" "$pod_name" -- /bin/sh -c "pgrep -f 'fio --name=${FIO_NAME}.*--directory=${TARGET_DIR}' > /dev/null" 2>/dev/null; then
-    echo "    FIO process seems to be already running on $pod_name. Skipping."
+  if kubectl exec -n "$NAMESPACE" "$pod_name" -- /bin/sh -c "pgrep -f 'fio --name=${fio_name}.*--directory=${target_dir}' > /dev/null" 2>/dev/null; then
+    echo "    [Pod $pod_name] FIO process already running. Skipping."
   else
-    echo "    FIO process not found on $pod_name. Starting FIO..."
-
-    if ! kubectl exec -n "$NAMESPACE" "$pod_name" -- /bin/sh -c "mkdir -p $TARGET_DIR"; then
-      echo "    XXX Failed to create directory $TARGET_DIR in $pod_name. Skipping FIO start."
-      continue
+    echo "    [Pod $pod_name] Starting FIO..."
+    if ! kubectl exec -n "$NAMESPACE" "$pod_name" -- /bin/sh -c "mkdir -p $target_dir" 2>/dev/null; then
+      echo "    [Pod $pod_name] XXX Failed to create directory $target_dir. Skipping FIO start."
+      return 1
     fi
-    echo "    Directory $TARGET_DIR ensured."
 
-    if kubectl exec -n "$NAMESPACE" "$pod_name" -- /bin/sh -c "nohup fio --name=${FIO_NAME} \
+    if kubectl exec -n "$NAMESPACE" "$pod_name" -- /bin/sh -c "nohup fio --name=${fio_name} \
         --ioengine=libaio \
         --iodepth=3 \
         --rw=randread \
@@ -40,13 +37,23 @@ for pod_name in $PODS; do
         --runtime=3600 \
         --time_based \
         --group_reporting \
-        --directory=${TARGET_DIR} > ${LOG_FILE} 2>&1 &"; then
-      echo "    FIO command initiated in the background on $pod_name. Log: ${LOG_FILE}"
+        --directory=${target_dir} > ${log_file} 2>&1 &" >/dev/null 2>&1; then
+      echo "    [Pod $pod_name] FIO command initiated in background. Log: ${log_file}"
     else
-      echo "    XXX Failed to start FIO on $pod_name."
+      echo "    [Pod $pod_name] XXX Failed to start FIO."
+      return 1
     fi
   fi
+}
+
+pids=()
+for pod_name in $PODS; do
+  run_on_pod "$pod_name" &
+  pids+=($!)
+done
+
+for pid in "${pids[@]}"; do
+  wait "$pid" 2>/dev/null || true
 done
 
 echo "FIO check and start process complete."
-

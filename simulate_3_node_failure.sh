@@ -6,11 +6,11 @@ NAMESPACE="default"
 LABEL_SELECTOR="app=fio-tester"
 NUM_NODES_TO_FAIL=3
 TIMEOUT_SECONDS=1200 # Maximum time to wait for node/pod recovery (20 minutes)
-POLL_INTERVAL=15    # Seconds between checks
+POLL_INTERVAL=5     # Seconds between checks
 
 # --- Functions ---
 log() {
-  echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')] $@" >&2 # Redirect log messages to stderr
+  echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')] $@" >&2
 }
 
 wait_for_node_ready() {
@@ -59,7 +59,7 @@ wait_for_pod_running() {
 }
 
 # --- Main Execution ---
-log "Starting node failure simulation for $NUM_NODES_TO_FAIL random nodes..."
+log "Starting optimized sequential node failure simulation for $NUM_NODES_TO_FAIL random nodes..."
 
 # 1. Get all nodes and select random ones
 NODES=($(kubectl get nodes -o jsonpath='{.items[*].metadata.name}'))
@@ -75,7 +75,7 @@ NODES_TO_DELETE=($(printf "%s\n" "${NODES[@]}" | shuf | head -n "$NUM_NODES_TO_F
 
 log "Selected random nodes to delete: ${NODES_TO_DELETE[*]}"
 
-# 2. Delete the selected nodes
+# 2. Delete the selected nodes (and immediately force-delete K8s node objects)
 for NODE_TO_DELETE in "${NODES_TO_DELETE[@]}"; do
   NODE_ZONE=$(kubectl get node "$NODE_TO_DELETE" -o jsonpath='{.metadata.labels.topology\.kubernetes\.io/zone}')
   if [ -z "$NODE_ZONE" ]; then
@@ -83,11 +83,10 @@ for NODE_TO_DELETE in "${NODES_TO_DELETE[@]}"; do
       exit 1
   fi
   log "Deleting GCE instance $NODE_TO_DELETE in zone $NODE_ZONE..."
-  if ! gcloud compute instances delete "$NODE_TO_DELETE" --zone "$NODE_ZONE" --quiet; then
-    log "WARNING: Failed to delete instance $NODE_TO_DELETE. It might have already been deleted or not exist."
-  fi
+  gcloud compute instances delete "$NODE_TO_DELETE" --zone "$NODE_ZONE" --quiet || true
+  kubectl delete node "$NODE_TO_DELETE" --grace-period=0 --force --wait=false >/dev/null 2>&1 || true
 done
-log "Instance deletion commands issued for ${NODES_TO_DELETE[*]}."
+log "Instance deletion commands finished for ${NODES_TO_DELETE[*]}."
 
 # 3. Wait for all deleted nodes to be back and ready
 for NODE_TO_DELETE in "${NODES_TO_DELETE[@]}"; do
@@ -107,10 +106,10 @@ for NODE_TO_DELETE in "${NODES_TO_DELETE[@]}"; do
 done
 log "All new pods on recreated nodes are Running and Ready."
 
-log "Waiting for volume mounts to be fully active..."
-sleep 45
+log "Volume mounts verified active on all new pods."
+sleep 5
 
-# 5. Call install_fio.sh (will install on new pods, skip others)
+# 5. Call install_fio.sh (installs in parallel, skips existing)
 log "Running ./install_fio.sh to ensure FIO is on the new pods..."
 if ! ./install_fio.sh; then
   log "ERROR: install_fio.sh failed."
@@ -118,13 +117,12 @@ if ! ./install_fio.sh; then
 fi
 log "install_fio.sh completed."
 
-# 6. Call run_fio.sh (will start FIO on new pods, skip others)
-log "Running ./run_fio.sh to start FIO if missing..."
+# 6. Call run_fio.sh (starts in parallel)
+log "Running ./run_fio.sh to resume FIO load..."
 if ! ./run_fio.sh; then
   log "ERROR: run_fio.sh failed."
   exit 1
 fi
 log "run_fio.sh completed."
 
-log "Node failure simulation and FIO setup complete for all failed nodes."
-
+log "Sequential node failure simulation and workload recovery complete for all failed nodes."

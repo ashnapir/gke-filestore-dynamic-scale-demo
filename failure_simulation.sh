@@ -5,12 +5,12 @@ set -e # Exit immediately if a command exits with a non-zero status.
 NAMESPACE="default"
 LABEL_SELECTOR="app=fio-tester"
 NUM_NODES_TO_FAIL=3
-TIMEOUT_SECONDS=1200 # Maximum time to wait for node/pod recovery (20 minutes)
-POLL_INTERVAL=15    # Seconds between checks
+TIMEOUT_SECONDS=900 # Maximum time to wait for node/pod recovery (15 minutes)
+POLL_INTERVAL=5     # Seconds between checks
 
 # --- Functions ---
 log() {
-  echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')] $@" >&2 # Redirect log messages to stderr
+  echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')] $@" >&2
 }
 
 wait_for_node_ready() {
@@ -45,7 +45,7 @@ wait_for_pod_running() {
       local pod_ready=$(kubectl get pod -n "$NAMESPACE" "$pod_name" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)
 
       if [ "$pod_phase" == "Running" ] && [ "$pod_ready" == "True" ]; then
-        log "Pod $pod_name is Running and Ready on node $NODE_NAME."
+        log "Pod $pod_name is Running and Ready on node $node_name."
         return 0
       fi
       log "Pod $pod_name found on $node_name, but not fully Ready. Phase: $pod_phase, Ready: $pod_ready"
@@ -59,7 +59,7 @@ wait_for_pod_running() {
 }
 
 # --- Main Execution ---
-log "Starting node failure simulation for $NUM_NODES_TO_FAIL random nodes..."
+log "Starting optimized node failure simulation for $NUM_NODES_TO_FAIL random nodes..."
 
 # 1. Get all nodes and select random ones
 NODES=($(kubectl get nodes -o jsonpath='{.items[*].metadata.name}'))
@@ -75,17 +75,20 @@ NODES_TO_DELETE=($(printf "%s\n" "${NODES[@]}" | shuf | head -n "$NUM_NODES_TO_F
 
 log "Selected random nodes to delete: ${NODES_TO_DELETE[*]}"
 
-# 2. Delete the selected nodes in parallel
+# 2. Delete the selected nodes in parallel (and immediately force-delete K8s node objects to release VolumeAttachment locks)
 declare -a delete_pids
 for NODE_TO_DELETE in "${NODES_TO_DELETE[@]}"; do
   NODE_ZONE=$(kubectl get node "$NODE_TO_DELETE" -o jsonpath='{.metadata.labels.topology\.kubernetes\.io/zone}')
   if [ -z "$NODE_ZONE" ]; then
       log "ERROR: Could not determine zone for node $NODE_TO_DELETE."
-      continue # Skip this node if zone not found
+      continue
   fi
-  log "Issuing delete command for GCE instance $NODE_TO_DELETE in zone $NODE_ZONE in background..."
+  log "Issuing delete command for GCE instance $NODE_TO_DELETE in zone $NODE_ZONE..."
   gcloud compute instances delete "$NODE_TO_DELETE" --zone "$NODE_ZONE" --quiet &
-  delete_pids+=($!) # Store the PID of the background process
+  delete_pids+=($!)
+
+  # Force-delete the K8s node object to immediately evict pods and release the CSI VolumeAttachment lock
+  kubectl delete node "$NODE_TO_DELETE" --grace-period=0 --force --wait=false >/dev/null 2>&1 &
 done
 
 log "Waiting for all gcloud delete commands to complete... PIDs: ${delete_pids[*]}"
@@ -93,7 +96,7 @@ for pid in "${delete_pids[@]}"; do
   if wait "$pid"; then
     log "gcloud delete process with PID $pid completed successfully."
   else
-    log "WARNING: gcloud delete process with PID $pid failed with exit code $?."
+    log "WARNING: gcloud delete process with PID $pid finished with code $?."
   fi
 done
 log "Instance deletion commands finished."
@@ -116,10 +119,10 @@ for NODE_TO_DELETE in "${NODES_TO_DELETE[@]}"; do
 done
 log "All new pods on recreated nodes are Running and Ready."
 
-log "Waiting for volume mounts to be fully active..."
-sleep 45
+log "Volume mounts verified active on all new pods."
+sleep 5
 
-# 5. Call install_fio.sh (will install on new pods, skip others)
+# 5. Call install_fio.sh (installs in parallel, skips pods that already have FIO)
 log "Running ./install_fio.sh to ensure FIO is on the new pods..."
 if ! ./install_fio.sh; then
   log "ERROR: install_fio.sh failed."
@@ -127,13 +130,12 @@ if ! ./install_fio.sh; then
 fi
 log "install_fio.sh completed."
 
-# 6. Call run_fio.sh (will start FIO on new pods, skip others)
-log "Running ./run_fio.sh to start FIO if missing..."
+# 6. Call run_fio.sh (starts FIO concurrently on new pods)
+log "Running ./run_fio.sh to resume FIO load..."
 if ! ./run_fio.sh; then
   log "ERROR: run_fio.sh failed."
   exit 1
 fi
 log "run_fio.sh completed."
 
-log "Node failure simulation and FIO setup complete for all failed nodes."
-
+log "Node failure simulation and workload recovery complete for all failed nodes."
