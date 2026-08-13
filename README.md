@@ -111,7 +111,7 @@ gcloud container clusters create "$CLUSTER_NAME" \
   --zone="$ZONE" \
   --network="$NETWORK" \
   --subnetwork="$SUBNET" \
-  --cluster-version=1.35.2-gke.1842000 \
+  --cluster-version=1.35 \
   --num-nodes=10 \
   --addons=GcpFilestoreCsiDriver \
   --no-enable-autoscaling
